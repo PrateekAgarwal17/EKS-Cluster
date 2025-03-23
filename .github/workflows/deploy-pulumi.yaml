@@ -1,0 +1,88 @@
+name: Deploy Pulumi EKS
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      job_to_run:
+        description: "Select the job to run"
+        required: true
+        default: "none"
+        type: choice
+        options:
+          - "destroy"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Verify AWS CLI & Install Pulumi
+        run: |
+          if aws --version; then
+              echo "✅ AWS CLI is already installed: $(aws --version)"
+          else
+              echo "❌ AWS CLI is missing! Installing now..."
+              curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+              unzip awscliv2.zip
+              sudo ./aws/install
+          fi
+          curl -fsSL https://get.pulumi.com | sh
+          echo "$HOME/.pulumi/bin" >> $GITHUB_PATH
+
+      - name: Configure AWS Credentials
+        run: |
+          aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }} --profile default
+          aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }} --profile default
+          aws configure set default.region us-east-1 --profile default
+
+      - name: Install Python & Dependencies
+        run: |
+          sudo apt update && sudo apt install -y python3-pip
+          pip install --upgrade pip
+          pip install pulumi pulumi-aws pulumi-eks boto3
+          pip install -r requirements.txt
+
+      - name: Pulumi Login
+        run: |
+          export PULUMI_ACCESS_TOKEN=${{ secrets.PULUMI_ACCESS_TOKEN }}
+          pulumi login --cloud-url https://api.pulumi.com
+
+      - name: Deploy AWS EKS with Pulumi
+        run: |
+          pulumi stack select PrateekAgarwal17/eks-cluster/First || pulumi stack init PrateekAgarwal17/eks-cluster/First
+          pulumi up --yes --color=always
+
+  destroy:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.job_to_run == 'destroy'
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Install AWS CLI & Pulumi
+        run: |
+          curl -fsSL https://get.pulumi.com | sh
+          echo "$HOME/.pulumi/bin" >> $GITHUB_PATH
+
+      - name: Configure AWS Credentials
+        run: |
+          aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }} --profile default
+          aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }} --profile default
+          aws configure set default.region us-east-1 --profile default
+
+      - name: Pulumi Login
+        run: |
+          export PULUMI_ACCESS_TOKEN=${{ secrets.PULUMI_ACCESS_TOKEN }}
+          pulumi login --cloud-url https://api.pulumi.com
+
+      - name: Destroy Pulumi Stack
+        run: |
+          pulumi stack select PrateekAgarwal17/eks-cluster/First
+          pulumi destroy --yes
+          pulumi stack rm --yes --color=always

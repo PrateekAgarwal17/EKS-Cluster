@@ -1,0 +1,22 @@
+
+config:
+  aws:region: us-east-1
+  cluster:name: First
+  cluster:cpu_instance_type: t3.micro
+  cluster:desired_cpu_node_count: 1
+  cluster:min_cpu_node_count: 0
+  cluster:max_cpu_node_count: 2
+  cluster:cpu_node_disk_size: 128
+  cluster:gpu_instance_type: g4dn.xlarge
+  cluster:desired_gpu_node_count: 0
+  cluster:min_gpu_node_count: 0
+  cluster:max_gpu_node_count: 0
+  cluster:gpu_node_disk_size: 128
+  cluster:version: "1.29"
+  cluster:gpu_operator_version: "v23.9.2"
+
+  network:vpc_cidr: "10.0.0.0/16"
+  network:single_nat: "true"
+  network:public_subnet_cidrs:
+    ["10.0.96.0/19", "10.0.128.0/19", "10.0.160.0/19"]
+  network:private_subnet_cidrs: ["10.0.0.0/19", "10.0.32.0/19", "10.0.64.0/19"]
