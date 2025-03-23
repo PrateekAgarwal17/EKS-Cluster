@@ -1,0 +1,1 @@
+Created a sample EKS cluster for the project purpose
